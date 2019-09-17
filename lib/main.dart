@@ -14,6 +14,15 @@ class App extends StatelessWidget {
 class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold();
+    return Scaffold(
+      body: Column(
+        children: <Widget>[
+          Image.asset(''),
+          Container(
+            child: Column(),
+          )
+        ],
+      ),
+    );
   }
 }
