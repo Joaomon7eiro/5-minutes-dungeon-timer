@@ -14,29 +14,29 @@ class TimerPage extends StatefulWidget {
 }
 
 class _TimerPageState extends State<TimerPage> {
-  static const totalTime = 300;
-
-  bool _timerIsRunning = false;
-  bool _hasStarted = false;
-  bool _hasBegin = false;
+  static const totalTime = 300; // 5min
 
   Timer _timer;
-  int _start = totalTime;
+
+  bool _timerIsRunning = false;
+  bool _timerHasStarted = false;
+  bool _countdownHasStarted = false;
+
+  int _dungeonCurrentTime = totalTime;
 
   static AudioCache storytellerPlayer = AudioCache(prefix: 'raw/');
   final AssetsAudioPlayer _assetsAudioPlayer = AssetsAudioPlayer();
 
   String get timerText {
-    var timeData = Duration(seconds: _start);
+    var timeData = Duration(seconds: _dungeonCurrentTime);
     return '${timeData.inMinutes}:${(timeData.inSeconds % 60).toString().padLeft(2, '0')}';
   }
 
   void handleTimer(Timer timer) {
     setState(() {
-      switch (_start) {
+      switch (_dungeonCurrentTime) {
         case 0:
-          storytellerPlayer.clearCache();
-          _assetsAudioPlayer.dispose();
+          storytellerPlayer.play('welcome.mp3');
           timer.cancel();
           return;
         case 240:
@@ -54,27 +54,30 @@ class _TimerPageState extends State<TimerPage> {
         case 30:
           storytellerPlayer.play('welcome.mp3');
           break;
+        case 10:
+          storytellerPlayer.play('welcome.mp3');
+          break;
         default:
       }
-      _start--;
+      _dungeonCurrentTime--;
     });
   }
 
   void startTimer() {
-    if (!_hasBegin) {
+    if (!_countdownHasStarted) {
       setState(() {
-        _hasBegin = true;
+        _countdownHasStarted = true;
+      });
+      Future.delayed(Duration(seconds: 1), () {
+        _assetsAudioPlayer.open(AssetsAudio(
+          asset: "main_audio.mp3",
+          folder: "assets/raw/",
+        ));
       });
       Future.delayed(Duration(seconds: 4), () {
         startTimer();
       });
       return;
-    }
-    if (!_hasStarted) {
-      _assetsAudioPlayer.open(AssetsAudio(
-        asset: "main_audio.mp3",
-        folder: "assets/raw/",
-      ));
     }
     _assetsAudioPlayer.play();
 
@@ -82,7 +85,7 @@ class _TimerPageState extends State<TimerPage> {
     _timer = new Timer.periodic(oneSec, (Timer timer) => handleTimer(timer));
 
     setState(() {
-      _hasStarted = true;
+      _timerHasStarted = true;
       _timerIsRunning = true;
     });
   }
@@ -96,23 +99,25 @@ class _TimerPageState extends State<TimerPage> {
   }
 
   void restartTimer() {
-    _start = totalTime;
-    _timer.cancel();
+    _dungeonCurrentTime = totalTime;
+    restartPlayers();
     setState(() {
       _timerIsRunning = false;
-      _hasStarted = false;
-      _hasBegin = false;
+      _timerHasStarted = false;
+      _countdownHasStarted = false;
     });
-    _assetsAudioPlayer.pause();
+  }
+
+  void restartPlayers() {
+    _timer.cancel();
+    _assetsAudioPlayer.stop();
     _assetsAudioPlayer.dispose();
+    storytellerPlayer.clearCache();
   }
 
   @override
   void dispose() {
-    _timer.cancel();
-    _assetsAudioPlayer.pause();
-    _assetsAudioPlayer.dispose();
-    storytellerPlayer.clearCache();
+    restartPlayers();
     super.dispose();
   }
 
@@ -143,7 +148,7 @@ class _TimerPageState extends State<TimerPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
-                        if (_hasStarted)
+                        if (_timerHasStarted)
                           Container(
                             child: Column(
                               children: <Widget>[
@@ -157,7 +162,7 @@ class _TimerPageState extends State<TimerPage> {
                               ],
                             ),
                           )
-                        else if (_hasBegin)
+                        else if (_countdownHasStarted)
                           SizedBox(
                             width: 250.0,
                             child: ScaleAnimatedTextKit(
@@ -173,11 +178,13 @@ class _TimerPageState extends State<TimerPage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                                 textAlign: TextAlign.center,
-                                alignment: AlignmentDirectional.topStart),
+                                alignment: AlignmentDirectional.center),
                           )
                         else
                           Text(''),
-                        if (!_timerIsRunning)
+                        if (!_timerHasStarted && _countdownHasStarted)
+                          Text('')
+                        else if (!_timerIsRunning)
                           FlatButton(
                             onPressed: startTimer,
                             child: Icon(
@@ -198,7 +205,7 @@ class _TimerPageState extends State<TimerPage> {
                       ],
                     ),
                   ),
-                  if (_hasStarted)
+                  if (_timerHasStarted)
                     Positioned(
                       top: 20,
                       right: 20,
